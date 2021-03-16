@@ -3,35 +3,93 @@
 set -eu
 
 readonly THIS_CMD="${0##*/}"
-readonly VERSION="v0.0.1"
+readonly VERSION="0.0.1"
 readonly URI='https://websh.jiro4989.com/api/shellgei'
 
 _main() {
 
-    if (($# < 1)); then
+    # 引数なしのときはヘルプを出力して終了
+    if [[ $# -lt 1 ]]
+    then
         _help
-        return
+        exit 0
     fi
 
-    result=$(_post "$*")
+    # jqがインストールされていなければエラーで終了
+    command -v jq &>/dev/null || {
+        _err "jq is not installed. (https://github.com/stedolan/jq)"
+        exit 1
+    }
 
-    # 標準出力を表示
-    jq -r '.stdout' <<< "$result"
+    local show_info='false'
 
-    # 標準エラー出力があれば表示
-    stderr="$(jq -r '.stderr' <<< "$result")"
+    # 引数をパース
+    while [ $# -gt 0 ]
+    do
+        case "$1" in
+        -h|--help)
+            _help
+            exit 0
+            ;;
+        -V|--version)
+            echo "$THIS_CMD -- Version $VERSION"
+            exit 0
+            ;;
+        -v|--verbose)
+            show_info='true'
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            break
+            ;;
+        esac
+
+        shift
+    done
+
+    #for arg in "$@"
+    #do
+    #    echo $arg
+    #done
+
+    result="$(_post_websh "$@")"
+
+    _print_stdout "$result"
+    _print_stderr "$result"
+
+    if "${show_info}"
+    then
+        _print_info "$result"
+    fi
+}
+
+# 標準出力をそのまま出力
+_print_stdout() {
+    jq -r '.stdout' <<< "$@"
+}
+
+# エラーを出力
+_print_stderr() {
+    stderr="$(jq -r '.stderr' <<< "$@")"
     if [ -n "$stderr" ]
     then
         _err "$stderr"
     fi
+}
 
-    # 詳細情報を表示
-    status="$(jq -r '.status' <<< "$result")"
-    _info "status: $status"
-    system_message="$(jq -r '.system_message' <<< "$result")"
-    _info "system_message: $system_message"
-    elapsed_time="$(jq -r '.elapsed_time' <<< "$result")"
-    _info "elapsed_time: $elapsed_time"
+# 詳細情報を出力
+_print_info() {
+    status="$(jq -r '.status' <<< "$@")"
+    [ -n "$status" ] && _info "status: $status"
+
+    system_message="$(jq -r '.system_message' <<< "$@")"
+    [ -n "$system_message" ] && _info "system_message: $system_message"
+
+    elapsed_time="$(jq -r '.elapsed_time' <<< "$@")"
+    [ -n "$elapsed_time" ] && _info "elapsed_time: $elapsed_time"
 }
 
 _help() {
@@ -41,8 +99,7 @@ Execute commands on ShellgeiBot using websh API
 USAGE:
     $THIS_CMD -h | --help
     $THIS_CMD -V | --version
-    $THIS_CMD [OPTIONS] CODE
-    echo CODE | $THIS_CMD [OPTIONS] CODE
+    $THIS_CMD [OPTIONS] [--] CODE
 
 EXAMPLES:
     $THIS_CMD 'echo hello'
@@ -52,8 +109,8 @@ EXAMPLES:
 OPTIONS:
     -h --help                   Display this help and exit
     -V --version                Display this version and exit
-    -v --verbose                Show detail information
-
+    -i --info                   Show detail information
+    -n --no-save-images         Not save images
 EOS
 }
 
@@ -65,7 +122,7 @@ _info() {
     echo -e "[ \e[36mINFO\e[m ] $*" >&2
 }
 
-_post() {
+_post_websh() {
     local code="${*}"
     local body="{
         \"code\": \"$code\",
