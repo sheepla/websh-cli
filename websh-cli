@@ -36,7 +36,7 @@ _main() {
             echo "$THIS_CMD -- Version $VERSION"
             exit 0
             ;;
-        -v|--verbose)
+        -i|--info)
             show_info='true'
             ;;
         -n|--no-save_images)
