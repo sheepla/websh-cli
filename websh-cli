@@ -8,13 +8,6 @@ readonly URI='https://websh.jiro4989.com/api/shellgei'
 
 _main() {
 
-    # 引数なしのときはヘルプを出力して終了
-    if [[ $# -lt 1 ]]
-    then
-        _help
-        exit 0
-    fi
-
     # jqがインストールされていなければエラーで終了
     command -v jq &>/dev/null || {
         _err "jq is not installed. (https://github.com/stedolan/jq)"
@@ -58,6 +51,13 @@ _main() {
     #do
     #    echo $arg
     #done
+
+    # 引数なしのときはヘルプを出力して終了
+    if [[ $# -lt 1 ]]
+    then
+        _help
+        exit 0
+    fi
 
     result="$(_post_websh "$@")"
 
@@ -115,6 +115,7 @@ OPTIONS:
     -V --version                Display this version and exit
     -i --info                   Show detail information
     -n --no-save-images         Not save images
+
 EOS
 }
 
