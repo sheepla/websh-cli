@@ -22,6 +22,7 @@ _main() {
     }
 
     local show_info='false'
+    local save_images='true'
 
     # 引数をパース
     while [ $# -gt 0 ]
@@ -37,6 +38,9 @@ _main() {
             ;;
         -v|--verbose)
             show_info='true'
+            ;;
+        -n|--no-save_images)
+            save_images='false'
             ;;
         --)
             shift
