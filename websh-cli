@@ -114,7 +114,9 @@ OPTIONS:
     -h --help                   Display this help and exit
     -V --version                Display this version and exit
     -i --info                   Show detail information
+    -u --upload-images IMAGES   Paths for images to upload
     -n --no-save-images         Not save images
+    -s --save-images PATH       Path for images to save
 
 EOS
 }
