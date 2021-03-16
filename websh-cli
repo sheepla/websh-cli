@@ -124,7 +124,7 @@ _err() {
 }
 
 _info() {
-    echo -e "[ \e[36mINFO\e[m ] $*" >&2
+    echo -e "[ \e[36mINFO\e[m ] $*"
 }
 
 _post_websh() {
