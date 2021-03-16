@@ -111,12 +111,13 @@ EXAMPLES:
     $THIS_CMD 'screenfetch | textimg -s'
 
 OPTIONS:
-    -h --help                   Display this help and exit
-    -V --version                Display this version and exit
-    -i --info                   Show detail information
-    -u --upload-images IMAGES   Paths for images to upload
-    -n --no-save-images         Not save images
-    -s --save-images PATH       Path for images to save
+    -h --help                        Show this help and exit
+    -V --version                     Show this version and exit
+    -i --info                        Show detail information
+    -u --upload-images IMAGES        Paths for images to upload
+    -n --no-save-images              Not save images
+    -s --save-images PATH            Paths for images to save
+    -a --saved-images-action COMMAND Command to execute for each saved images
 
 EOS
 }
