@@ -8,31 +8,34 @@ readonly URI='https://websh.jiro4989.com/api/shellgei'
 
 _main() {
 
-    # jqがインストールされていなければエラーで終了
-    command -v jq &>/dev/null || {
-        _err "jq is not installed. (https://github.com/stedolan/jq)"
-        exit 1
-    }
+    # コマンドがインストールされているか確認
+    _check_commands
 
+    # オプションで切り替わるフラグ
     local show_info='false'
     local save_images='true'
+    local plain_json_mode='false'
 
     # 引数をパース
     while [ $# -gt 0 ]
     do
-        case "$1" in
+        arg="$1"
+        case "$arg" in
         -h|--help)
             _help
             exit 0
             ;;
-        -V|--version)
+        -v|l-V|--version)
             echo "$THIS_CMD -- Version $VERSION"
             exit 0
+            ;;
+        -j|--json)
+            plain_json_mode='true'
             ;;
         -i|--info)
             show_info='true'
             ;;
-        -n|--no-save_images)
+        -n|--no-save-images)
             save_images='false'
             ;;
         --)
@@ -47,27 +50,39 @@ _main() {
         shift
     done
 
-    #for arg in "$@"
-    #do
-    #    echo $arg
-    #done
-
     # 引数なしのときはヘルプを出力して終了
     if [[ $# -lt 1 ]]
     then
         _help
-        exit 0
+        return 0
     fi
 
+    # POSTして結果を取得
     result="$(_post_websh "$@")"
 
+    if "${plain_json_mode}"
+    then
+        echo "$result" | jq
+        return 0
+    fi
+
+    # stdout, stderrを出力
     _print_stdout "$result"
     _print_stderr "$result"
 
+    # show_infoフラグがtrueならば詳細情報を出力
     if "${show_info}"
     then
         _print_info "$result"
     fi
+
+    # show_infoフラグがtrueならば画像をファイルに保存
+    if "${save_images}"
+    then
+        _save_images "$result"
+    fi
+
+    return 0
 }
 
 # 標準出力をそのまま出力
@@ -96,13 +111,14 @@ _print_info() {
     [ -n "$elapsed_time" ] && _info "elapsed_time: $elapsed_time"
 }
 
+# ヘルプメッセージ
 _help() {
 cat << EOS
 Execute commands on ShellgeiBot using websh API
 
 USAGE:
     $THIS_CMD -h | --help
-    $THIS_CMD -V | --version
+    $THIS_CMD -v | --version
     $THIS_CMD [OPTIONS] [--] CODE
 
 EXAMPLES:
@@ -112,7 +128,8 @@ EXAMPLES:
 
 OPTIONS:
     -h --help                        Show this help and exit
-    -V --version                     Show this version and exit
+    -v --version                     Show this version and exit
+    -j --json                        Just output plain JSON string
     -i --info                        Show detail information
     -u --upload-images IMAGES        Paths for images to upload
     -n --no-save-images              Not save images
@@ -120,6 +137,23 @@ OPTIONS:
     -a --saved-images-action COMMAND Command to execute for each saved images
 
 EOS
+}
+
+_check_commands() {
+    command -v curl &>/dev/null || {
+        _err "curl is not installed."
+        exit 1
+    }
+
+    command -v jq &>/dev/null || {
+        _err "jq is not installed. (https://github.com/stedolan/jq)"
+        exit 1
+    }
+
+    command -v base64 &>/dev/null || {
+        _err "base64 is not installed."
+        exit 1
+    }
 }
 
 _err() {
@@ -131,7 +165,7 @@ _info() {
 }
 
 _post_websh() {
-    local code="${*}"
+    local code="$1"
     local body="{
         \"code\": \"$code\",
         \"images\": []
@@ -140,5 +174,25 @@ _post_websh() {
     curl --silent --request POST --data "$body" $URI
 }
 
+# 画像を保存
+_save_images() {
+    local json_data="$@"
+    local length="$(jq -r '.images | length' <<< "$json_data")"
+
+    for i in $(seq 0 $((length - 1)))
+    do
+        # 画像のフォーマットを取得
+        local ext=$(jq -r ".images[$i].format" <<< "$json_data")
+
+        local savedir="/tmp"
+
+        # ファイルに出力
+        jq -r ".images[$i].image" <<< "$json_data" | base64 -d > "$savedir/websh-cli-$i.$ext"
+
+    done
+}
+
+# _main関数を実行
 _main "$@"
+# _main関数と同じ終了ステータスで終了
 exit $?
