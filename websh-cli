@@ -131,7 +131,6 @@ OPTIONS:
     -v --version                     Show this version and exit
     -j --json                        Just output plain JSON string
     -i --info                        Show detail information
-    -u --upload-images IMAGES        Paths for images to upload
     -n --no-save-images              Not save images
     -s --save-images PATH            Paths for images to save
     -a --saved-images-action COMMAND Command to execute for each saved images
